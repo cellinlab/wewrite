@@ -25,6 +25,7 @@ theme: "professional-clean" # 排版主题
 ```yaml
 target_audience: "目标受众描述"
 voice: "写作人称和语感"
+writing_persona: "midnight-friend"  # 写作人格（见下方说明）
 word_count: "1500-2500"
 blacklist:
   words: ["禁忌词1", "禁忌词2"]

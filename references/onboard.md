@@ -25,9 +25,20 @@
 | 有没有绝对不能出现的词或话题？ | `blacklist` | 空 |
 | 有没有想参考的公众号？ | `reference_accounts` | 空 |
 | 署名写什么？ | `author` | name 字段值 |
+| 偏好哪种写作人格？ | `writing_persona` | 从 tone 推断（见下表） |
 | 偏好哪种排版风格？（可运行 `gallery` 命令预览全部 16 个主题） | `theme` | "professional-clean" |
 | 封面风格偏好？ | `cover_style` | 从 industry 推断 |
 | 有没有固定封面模板？ | `cover_template` | 不设置 |
+
+**写作人格说明**（`personas/` 目录下有详细定义）：
+
+| 人格 | 适合 | 一句话描述 |
+|------|------|----------|
+| `midnight-friend` | 个人号/自媒体 | 像深夜给朋友发微信，极度口语化 |
+| `industry-observer` | 行业媒体/分析 | 克制的专业分析，偶尔锐利 |
+| `sharp-journalist` | 新闻/评论 | 短句利落，观点鲜明 |
+| `warm-editor` | 生活/文化/情感 | 故事驱动，温暖共鸣 |
+| `cold-analyst` | 财经/投研 | 严谨数据，专业措辞 |
 
 **快捷路径**：
 - 如果用户直接甩了一段描述（如"我做科技自媒体，风格像虎嗅"），直接从中提取所有能提取的字段，只补问缺的
