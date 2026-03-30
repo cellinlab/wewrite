@@ -45,6 +45,14 @@ allowed-tools:
 - 用户说"重新设置风格" → `读取: {skill_dir}/references/onboard.md`
 - 用户说"学习我的修改" → `读取: {skill_dir}/references/learn-edits.md`
 - 用户说"看看文章数据" → `读取: {skill_dir}/references/effect-review.md`
+- 用户说"诊断配置"/"检查反AI"/"为什么AI检测没过" → 执行以下流程：
+  1. `python3 {skill_dir}/scripts/diagnose.py --json`
+  2. 如果有 fail 项 → 直接报告，建议修复
+  3. 如果全 pass 或仅 warn → 继续 LLM 深度分析：
+     - 读取 `style.yaml` 的 tone/voice 与 writing_persona，判断是否矛盾
+     - 读取 `writing-config.yaml`（如存在），检查是否有 AI 特征参数（emotional_arc: flat、paragraph_rhythm: structured、closing_style: summary）
+     - 读取 `history.yaml` 最近 5 篇，检查 persona 使用和 WebSearch 降级情况
+  4. 综合输出自然语言报告 + 按优先级排序的改进建议
 
 ---
 
@@ -285,6 +293,7 @@ python3 {skill_dir}/toolkit/cli.py preview {markdown} --theme {theme} --no-open 
 | 看看文章数据 | `读取: {skill_dir}/references/effect-review.md` |
 | 学习我的修改 | `读取: {skill_dir}/references/learn-edits.md` |
 | 做一个小绿书/图片帖 | `python3 {skill_dir}/toolkit/cli.py image-post img1.jpg img2.jpg -t "标题"` |
+| 诊断配置 / 检查反AI / 为什么AI检测没过 | `python3 {skill_dir}/scripts/diagnose.py --json` + LLM 交叉分析 |
 
 ---
 
