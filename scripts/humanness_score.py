@@ -345,6 +345,81 @@ def run_tier(checks, text):
 
 
 # ============================================================
+# Calibration (bell-curve + over-optimization penalty)
+# ============================================================
+
+# Human article baselines (from 15 example articles, 2026-03-30)
+# Dimensions where AI over-optimizes: bell-curve scoring penalizes
+# both "too low" AND "too high" relative to human average.
+_BELL_CURVE_CHECKS = {
+    "broken_sentences": 0.39,
+    "self_correction": 0.20,
+    "sentence_length_range": 0.71,
+    "paragraph_length_variance": 0.52,
+    "banned_words": 0.73,
+}
+
+
+def _bell_curve(raw_score, center):
+    """Score peaks at center (human avg), penalizes over-optimization.
+
+    Below center: linear rise (as before).
+    Above center: quadratic penalty — too much is suspicious.
+    """
+    if center <= 0:
+        return raw_score
+    if raw_score <= center:
+        return raw_score / center
+    else:
+        overshoot = (raw_score - center) / (1.0 - center) if center < 1 else 0
+        return max(0.0, 1.0 - overshoot * overshoot)
+
+
+def calibrate_tiers(tier1, tier2):
+    """Apply bell-curve calibration and over-optimization penalty in-place."""
+    # 1. Bell-curve adjustment for over-optimizable dimensions
+    for tier in [tier1, tier2]:
+        for name, data in tier.items():
+            if name.startswith("_"):
+                continue
+            if name in _BELL_CURVE_CHECKS:
+                raw = data["score"]
+                center = _BELL_CURVE_CHECKS[name]
+                calibrated = round(max(0.0, min(1.0, _bell_curve(raw, center))), 4)
+                data["raw_score"] = raw
+                data["score"] = calibrated
+                data["detail"] += f" [calibrated from {raw:.2f}, center={center}]"
+
+    # 2. Over-optimization penalty: if 60%+ of checks score > 0.8,
+    #    the article is suspiciously "perfect" — apply global penalty.
+    all_scores = []
+    for tier in [tier1, tier2]:
+        for name, data in tier.items():
+            if not name.startswith("_"):
+                all_scores.append(data["score"])
+
+    high_count = sum(1 for s in all_scores if s > 0.8)
+    over_opt_ratio = high_count / len(all_scores) if all_scores else 0
+    penalty = 1.0
+    if over_opt_ratio >= 0.6:
+        penalty = 0.85  # 15% penalty for suspiciously perfect articles
+
+    if penalty < 1.0:
+        for tier in [tier1, tier2]:
+            for name, data in tier.items():
+                if not name.startswith("_"):
+                    data["score"] = round(data["score"] * penalty, 4)
+
+    # 3. Recalculate tier summaries
+    for tier in [tier1, tier2]:
+        scores = [data["score"] for name, data in tier.items() if not name.startswith("_")]
+        tier["_summary"]["mean_score"] = round(sum(scores) / len(scores), 4) if scores else 0
+        tier["_summary"]["scores"] = [round(s, 4) for s in scores]
+
+    return penalty
+
+
+# ============================================================
 # Composite Score
 # ============================================================
 
@@ -394,6 +469,7 @@ def score_article(text, verbose=False, tier3_score=None):
 
     tier1 = run_tier(TIER1_CHECKS, clean)
     tier2 = run_tier(TIER2_CHECKS, clean)
+    over_opt_penalty = calibrate_tiers(tier1, tier2)
     composite, weights = compute_composite(tier1, tier2, tier3_score)
     param_scores = build_param_scores(tier1, tier2)
 
@@ -407,6 +483,7 @@ def score_article(text, verbose=False, tier3_score=None):
         },
         "weights": weights,
         "param_scores": param_scores,
+        "over_optimization_penalty": over_opt_penalty,
         "char_count": len(clean),
     }
 
