@@ -248,7 +248,19 @@ Category 映射规则：
 | 热点解读型 | hot-take |
 | 其他 | general |
 
-如果匹配到的范文不足 3 篇，用 general category 补足。如果范文库为空，跳过此步。
+如果匹配到的范文不足 3 篇，用 general category 补足。
+
+**Fallback（范文库为空时）**：读取 `{skill_dir}/references/exemplar-seeds.yaml`，从每个段落类型中随机选 1 个注入 prompt。种子段落只示范人类写作的结构模式（句长方差、情绪锐度、自我纠正、非总结式收尾），不携带特定风格。注入时使用：
+
+> 以下是人类写作的结构模式示例，注意模仿其句长节奏和情绪表达方式（不要模仿具体内容或风格）：
+>
+> 【开头模式】{seeds.opening_hooks 随机 1 个}
+>
+> 【情绪段模式】{seeds.emotional_peaks 随机 1 个}
+>
+> 【转折模式】{seeds.transitions 随机 1 个}
+>
+> 【收尾模式】{seeds.closings 随机 1 个}
 
 建库命令：`python3 {skill_dir}/scripts/extract_exemplar.py article.md`
 
