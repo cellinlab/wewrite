@@ -198,6 +198,7 @@ WebSearch: "{选题关键词} 数据 报告 2025 2026"
 读取: {skill_dir}/playbook.md（如果存在，按 confidence 分级执行）
 读取: {skill_dir}/writing-config.yaml（如果存在，作为写作参数）
 读取: {skill_dir}/history.yaml（最近 3 篇的 dimensions 字段）
+读取: {skill_dir}/references/exemplars/index.yaml（如果存在）
 ```
 
 **4.1 历史最佳参数参考**（有 history.yaml 且包含 composite_score 时执行）：
@@ -219,7 +220,38 @@ WebSearch: "{选题关键词} 数据 报告 2025 2026"
 
 **优先级**：playbook.md（confidence ≥ 5 的规则）> persona > writing-guide.md。writing-guide 是底线（禁用词等），persona 在此基础上特化风格参数，playbook 中高置信度规则是用户个性化的最终覆盖。playbook 中 confidence < 5 的规则作为软性参考。
 
-**4.4 写文章**：
+**4.4 范文风格注入**（有 `references/exemplars/index.yaml` 时执行）：
+
+从 index.yaml 筛选 category 匹配当前框架类型的范文，按 humanness_score 升序（越低越人类）取 top 3。读取对应 .md 文件的片段内容。
+
+在写作 prompt 中注入：
+
+> 以下是该公众号风格的真实段落示例，模仿其句长节奏、情绪强度和口语化程度：
+>
+> 【开头风格】
+> {exemplar_1 的开头钩子段}
+>
+> 【情绪段风格】
+> {exemplar_2 的情绪高峰段}
+>
+> 【收尾风格】
+> {exemplar_3 的收尾段}
+
+Category 映射规则：
+
+| 框架类型 | exemplar category |
+|----------|-------------------|
+| 痛点型/深度解读 | tech-opinion |
+| 故事型 | story-emotional |
+| 清单型/对比型 | list-practical |
+| 热点解读型 | hot-take |
+| 其他 | general |
+
+如果匹配到的范文不足 3 篇，用 general category 补足。如果范文库为空，跳过此步。
+
+建库命令：`python3 {skill_dir}/scripts/extract_exemplar.py article.md`
+
+**4.5 写文章**：
 - H1 标题（20-28 字） + H2 结构，1500-2500 字
 - 真实素材锚定：Step 3.2 的素材分散嵌入各 H2 段落
 - **写作人格**：按 4.3 加载的人格参数写作（数据呈现方式、个人声音浓度、不确定性表达等）
@@ -375,6 +407,8 @@ python3 {skill_dir}/toolkit/cli.py preview {markdown} --theme {theme} --no-open 
 | 做一个小绿书/图片帖 | `python3 {skill_dir}/toolkit/cli.py image-post img1.jpg img2.jpg -t "标题"` |
 | 诊断配置 / 检查反AI / 为什么AI检测没过 | `python3 {skill_dir}/scripts/diagnose.py --json` + LLM 交叉分析 |
 | 优化写作参数 / 优化参数 | 迭代循环：写测试短文 → 打分 → 调参（见辅助功能） |
+| 导入范文 / 建范文库 | `python3 {skill_dir}/scripts/extract_exemplar.py article.md` |
+| 查看范文库 | `python3 {skill_dir}/scripts/extract_exemplar.py --list` |
 
 ---
 

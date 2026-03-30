@@ -16,6 +16,10 @@ optimization-results.tsv
 output/
 !output/.gitkeep
 
+# Exemplar library (user-specific content)
+references/exemplars/*.md
+references/exemplars/index.yaml
+
 # Legacy client directories
 clients/
 
