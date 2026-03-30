@@ -219,7 +219,7 @@ WebSearch: "{选题关键词} 数据 报告 2025 2026"
 
 人格文件定义了：语气浓度、数据呈现方式、情绪弧线、段落节奏、不确定性表达模板等。作为 4.4 的硬性约束执行。
 
-**优先级**：playbook.md（confidence ≥ 5 的规则）> persona > writing-guide.md。writing-guide 是底线（禁用词等），persona 在此基础上特化风格参数，playbook 中高置信度规则是用户个性化的最终覆盖。playbook 中 confidence < 5 的规则作为软性参考。
+**优先级**：playbook.md（confidence ≥ 5 的规则）> persona > 范文风格 > writing-guide.md。writing-guide 是底线（禁用词等），范文提供风格示范（句长节奏、情绪表达方式），persona 在此基础上特化风格参数（语气浓度、数据呈现），playbook 中高置信度规则是用户个性化的最终覆盖。playbook 中 confidence < 5 的规则作为软性参考。
 
 **4.4 范文风格注入**（有 `references/exemplars/index.yaml` 时执行）：
 
@@ -234,6 +234,9 @@ WebSearch: "{选题关键词} 数据 报告 2025 2026"
 >
 > 【情绪段风格】
 > {exemplar_2 的情绪高峰段}
+>
+> 【转折风格】
+> {exemplar_2 或 exemplar_3 的转折/自纠段（如有）}
 >
 > 【收尾风格】
 > {exemplar_3 的收尾段}
@@ -436,6 +439,7 @@ python3 {skill_dir}/toolkit/cli.py preview {markdown} --theme {theme} --no-open 
 | 素材采集（WebSearch） | LLM 训练数据中可验证的公开信息 |
 | 维度随机化 | history 空时跳过去重 |
 | Persona 文件不存在 | 回退到 midnight-friend（默认） |
+| 范文库为空 | Fallback 到 exemplar-seeds.yaml（通用模式） |
 | 去 AI 验证 | 3 次重写不过则跳过该项 |
 | 生图失败 | 输出提示词 |
 | 推送失败 | 本地 HTML |
