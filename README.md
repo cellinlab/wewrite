@@ -122,19 +122,21 @@ python3 toolkit/cli.py themes
 
 ## 安装
 
+**Claude Code**：
+
 ```bash
-git clone https://github.com/oaker-io/wewrite.git
-cd wewrite
-pip install -r requirements.txt
+git clone --depth 1 https://github.com/oaker-io/wewrite.git ~/.claude/skills/wewrite
+cd ~/.claude/skills/wewrite && pip install -r requirements.txt
 ```
 
-### 挂载为 Skill
+**OpenClaw**：
 
-**Claude Code**：`cp -r wewrite ~/.claude/skills/wewrite`
+```bash
+git clone --depth 1 https://github.com/oaker-io/wewrite.git ~/.openclaw/skills/wewrite
+cd ~/.openclaw/skills/wewrite && pip install -r requirements.txt
+```
 
-**OpenClaw**：`ln -s /path/to/wewrite/dist/openclaw ~/.openclaw/skills/wewrite`
-
-> `dist/openclaw/` 是自动构建的 OpenClaw 兼容版（工具名、路径变量已转换），push to main 时 CI 自动更新。
+安装后 skill 会在每次运行时自动检查新版本。有更新时说"更新"即可升级。
 
 ### 配置（可选）
 

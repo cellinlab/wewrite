@@ -53,6 +53,7 @@ allowed-tools:
      - 读取 `writing-config.yaml`（如存在），检查是否有 AI 特征参数（emotional_arc: flat、paragraph_rhythm: structured、closing_style: summary）
      - 读取 `history.yaml` 最近 5 篇，检查 persona 使用和 WebSearch 降级情况
   4. 综合输出自然语言报告 + 按优先级排序的改进建议
+- 用户说"更新"/"更新 WeWrite"/"升级" → 在 `{skill_dir}` 执行 `git pull origin main`，完成后告知版本变化
 
 ---
 
@@ -72,6 +73,17 @@ python3 -c "import markdown, bs4, cssutils, requests, yaml, pygments, PIL" 2>&1
 | Python 依赖 | 静默 | 提供 `pip install -r requirements.txt` |
 | `wechat.appid` + `secret` | 静默 | 设 `skip_publish = true` |
 | `image.api_key` | 静默 | 设 `skip_image_gen = true` |
+
+**1a-2. 版本检查**（静默通过或提醒）：
+
+```bash
+cd {skill_dir} && git fetch origin main --quiet 2>/dev/null
+```
+
+比对本地 `{skill_dir}/VERSION` 与远程 `git show origin/main:VERSION`：
+- 相同 → 静默通过
+- 不同 → 提示用户："WeWrite 有新版本可用（当前 X → 最新 Y），说「更新」即可升级。"**不阻断流程**，继续 Step 1b
+- git 不可用（无 .git 目录或 fetch 失败）→ 静默跳过
 
 **1b. 加载风格**：
 

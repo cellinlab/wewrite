@@ -23,6 +23,7 @@ COPY_FILES = [
     "config.example.yaml",
     "style.example.yaml",
     "writing-config.example.yaml",
+    "VERSION",
 ]
 
 # Frontmatter keys to strip (OpenClaw ignores allowed-tools)
