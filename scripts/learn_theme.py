@@ -158,13 +158,18 @@ _BROWSER_UA = (
 )
 
 
-def fetch_article(url: str) -> "BeautifulSoup tag":
+def fetch_article(url: str, timeout: int = 20) -> "BeautifulSoup tag":
     """Fetch a WeChat article, return the ``#js_content`` element.
 
     The article title is attached as ``content._wewrite_title`` (empty string
     if not found).  Exits with code 1 if ``#js_content`` is absent.
+
+    Parameters
+    ----------
+    url:     WeChat article URL (mp.weixin.qq.com/…)
+    timeout: HTTP request timeout in seconds (default 20).
     """
-    resp = requests.get(url, headers={"User-Agent": _BROWSER_UA}, timeout=20)
+    resp = requests.get(url, headers={"User-Agent": _BROWSER_UA}, timeout=timeout)
     resp.encoding = "utf-8"
     soup = BeautifulSoup(resp.text, "html.parser")
 
