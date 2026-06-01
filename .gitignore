@@ -39,6 +39,8 @@ __pycache__/
 dist/*
 !dist/openclaw/
 build/
+.venv/
+venv/
 
 # Internal dev docs
 docs/

@@ -125,15 +125,19 @@ python3 toolkit/cli.py themes
 
 ```bash
 git clone --depth 1 https://github.com/oaker-io/wewrite.git ~/.claude/skills/wewrite
-cd ~/.claude/skills/wewrite && pip install -r requirements.txt
+cd ~/.claude/skills/wewrite && bash install.sh
 ```
 
 **OpenClaw**：
 
 ```bash
 git clone --depth 1 https://github.com/oaker-io/wewrite.git ~/.openclaw/skills/wewrite
-cd ~/.openclaw/skills/wewrite && pip install -r requirements.txt
+cd ~/.openclaw/skills/wewrite && bash install.sh
 ```
+
+`install.sh` 会在 `.venv` 里创建隔离环境并安装依赖，自动绕过 macOS Homebrew Python 的 PEP 668 限制。skill 运行时会自动使用该 venv，无需手动 `activate`。
+
+> 若你的环境没有 PEP 668 限制，也可以照旧直接 `pip install -r requirements.txt`。
 
 安装后 skill 会在每次运行时自动检查新版本。有更新时说"更新"即可升级。
 

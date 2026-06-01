@@ -32,6 +32,8 @@ description: |
 
 **路径约定**：本文档中 `{baseDir}` 指本 SKILL.md 所在的目录（即 WeWrite 的根目录）。
 
+**Python 解释器约定**：本文档所有 `python3` 命令优先解析为 `{baseDir}/.venv/bin/python3`（若该文件存在），否则回退系统 `python3`。venv 由 `install.sh` 创建，用于隔离依赖并绕过 macOS Homebrew Python 的 PEP 668 限制。
+
 **Onboard 例外**：Onboard 是交互式的（需要问用户问题），不受"全自动"约束。Onboard 完成后回到全自动管道。
 
 **辅助功能**（按需加载，不在主管道内）：
@@ -91,13 +93,15 @@ TaskCreate: "Step 8: 收尾"
 **1.1 环境检查**（静默通过或引导修复）：
 
 ```bash
-python3 -c "import markdown, bs4, cssutils, requests, yaml, pygments, PIL" 2>&1
+# 优先用 venv 解释器（PEP 668 环境下依赖装在 .venv 里）；后续所有 python3 调用同此规则
+PY="{baseDir}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"
+"$PY" -c "import markdown, bs4, cssutils, requests, yaml, pygments, PIL" 2>&1
 ```
 
 | 检查项 | 通过 | 不通过 |
 |--------|------|--------|
 | `config.yaml` 存在 | 静默 | 引导创建，或设 `skip_publish = true` |
-| Python 依赖 | 静默 | 提供 `pip install -r requirements.txt` |
+| Python 依赖 | 静默 | 引导执行 `bash {baseDir}/install.sh`（自动建 .venv 装依赖，解决 macOS PEP 668 报错）；若环境无此限制也可 `pip install -r requirements.txt` |
 | `wechat.appid` + `secret` | 静默 | 设 `skip_publish = true` |
 | `image.api_key` 或 `image.providers` 至少一项有效 | 静默 | 设 `skip_image_gen = true` |
 | `references/exemplars/index.yaml` | 静默 | 提示："范文库为空。如果你有已发布的文章（markdown），可以说**'导入范文'**建立风格库，写出来的文章会更像你。没有也不影响使用。" |
