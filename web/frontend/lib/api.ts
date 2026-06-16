@@ -60,8 +60,14 @@ export type JobDetail = JobSummary & {
   title?: string | null;
   article_markdown?: string | null;
   preview_html?: string | null;
+  images?: string[];
   events: JobEvent[];
 };
+
+// 产物 URL：后端返回相对 /artifacts/...，前端按需补上 API_BASE。
+export function artifactUrl(p: string): string {
+  return p.startsWith("/") ? `${API_BASE}${p}` : p;
+}
 export type JobEvent = {
   seq: number;
   ts: number;

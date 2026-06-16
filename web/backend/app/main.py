@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .config import get_settings
 from .routes import account, catalog, jobs, publish
@@ -10,6 +11,10 @@ from .routes import account, catalog, jobs, publish
 app = FastAPI(title="WeWrite Web", version="0.1.0")
 
 settings = get_settings()
+# 生成的图片产物（公开可取，供 <img> 与发布渠道读取）。
+# NOTE(生产): 换对象存储 + CDN；如需鉴权改为签名 URL。
+settings.artifact_root.mkdir(parents=True, exist_ok=True)
+app.mount("/artifacts", StaticFiles(directory=str(settings.artifact_root)), name="artifacts")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

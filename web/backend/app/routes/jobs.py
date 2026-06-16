@@ -56,6 +56,7 @@ def get_job(job_id: str, user_id: str = Depends(current_user)) -> dict:
         "title": job.title,
         "article_markdown": job.article_markdown,
         "preview_html": job.preview_html,
+        "images": job.images,
         "events": job.events,
     }
 

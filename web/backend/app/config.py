@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from functools import lru_cache
 from pathlib import Path
 
@@ -31,6 +32,17 @@ class Settings:
 
         ws_root = os.environ.get("WEWRITE_WORKSPACE_ROOT", "")
         self.workspace_root: Path = Path(ws_root).resolve() if ws_root else None  # None → 系统临时目录
+
+        # 任务产物（生成的图片）持久化目录 —— 工作区清理后仍保留，供预览与发布使用。
+        # NOTE(生产): 换成对象存储（S3/OSS）+ CDN，而非本机磁盘。
+        art_root = os.environ.get("WEWRITE_ARTIFACT_ROOT", "")
+        self.artifact_root: Path = (
+            Path(art_root).resolve()
+            if art_root
+            else Path(tempfile.gettempdir()) / "wewrite-artifacts"
+        )
+        # 拼绝对 URL 用的公开基址（可选）。留空则产物用相对路径 /artifacts/...
+        self.public_base_url: str = os.environ.get("WEWRITE_PUBLIC_BASE_URL", "").rstrip("/")
 
         self.max_turns: int = int(os.environ.get("WEWRITE_MAX_TURNS", "120"))
         self.cors_origins: list[str] = [

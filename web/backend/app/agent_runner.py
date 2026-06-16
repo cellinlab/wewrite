@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -165,17 +166,70 @@ def _detect_completion(last_text: str, result_text: Optional[str]) -> Optional[s
     return "DONE"
 
 
+_IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif")
+
+
 def _collect_outputs(job: Job, ws: Path, *, theme: str) -> None:
     out = ws / "output"
     if not out.exists():
         return
+    # 先持久化图片（工作区随后会被清理）
+    _persist_images(job, out)
     mds = sorted(out.glob("**/*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
     if mds:
         md = mds[0]
         text = md.read_text(encoding="utf-8")
-        job.article_markdown = text
+        job.preview_html = _generate_preview(ws, md, theme=theme)  # 预览基于原始相对路径
+        # 把正文里的本地图片引用改写成持久化后的 URL，使 markdown 自包含
+        job.article_markdown = _rewrite_md_images(text, job)
         job.title = _first_heading(text) or md.stem
-        job.preview_html = _generate_preview(ws, md, theme=theme)
+
+
+def _image_sort_key(p: Path) -> tuple:
+    name = p.name.lower()
+    if "cover" in name or "封面" in name:
+        return (0, 0, name)
+    m = re.search(r"fig(\d+)", name)
+    if m:
+        return (1, int(m.group(1)), name)
+    return (2, 0, name)
+
+
+def _persist_images(job: Job, out: Path) -> None:
+    from .config import get_settings
+
+    settings = get_settings()
+    imgs = sorted(
+        (p for p in out.glob("**/*") if p.is_file() and p.suffix.lower() in _IMAGE_EXTS),
+        key=_image_sort_key,
+    )
+    if not imgs:
+        return
+    dest = settings.artifact_root / job.id
+    dest.mkdir(parents=True, exist_ok=True)
+    for p in imgs:
+        target = dest / p.name
+        try:
+            shutil.copy2(p, target)
+        except OSError:
+            continue
+        rel = f"/artifacts/{job.id}/{p.name}"
+        job.images.append(settings.public_base_url + rel if settings.public_base_url else rel)
+        job.image_paths.append(str(target))
+
+
+def _rewrite_md_images(md: str, job: Job) -> str:
+    if not job.images:
+        return md
+    # basename -> URL
+    by_name = {Path(u).name: u for u in job.images}
+
+    def repl(m: re.Match) -> str:
+        alt, path = m.group(1), m.group(2)
+        url = by_name.get(Path(path).name)
+        return f"![{alt}]({url})" if url else m.group(0)
+
+    return re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", repl, md)
 
 
 def _first_heading(markdown: str) -> Optional[str]:

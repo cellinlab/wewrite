@@ -7,6 +7,7 @@ import {
   CatalogItem,
   JobDetail,
   JobEvent,
+  artifactUrl,
   createJob,
   getAccount,
   getJob,
@@ -230,6 +231,25 @@ export default function HomePage() {
             {result.title && <span style={{ color: "var(--muted)" }}>· {result.title}</span>}
           </h2>
           {result.error && <p className="log err">{result.error}</p>}
+          {result.images && result.images.length > 0 && (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+              {result.images.map((src, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={artifactUrl(src)}
+                  alt={`配图 ${i + 1}`}
+                  style={{
+                    width: 120,
+                    height: 120,
+                    objectFit: "cover",
+                    borderRadius: 8,
+                    border: "1px solid var(--border)",
+                  }}
+                />
+              ))}
+            </div>
+          )}
           {result.article_markdown ? (
             <>
               <div className="tabs">

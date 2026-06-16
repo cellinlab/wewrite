@@ -129,12 +129,14 @@ def _build_note(req: PublishRequest, user_id: str) -> NotePayload:
         return NotePayload(
             title=job.title or "未命名",
             content=_markdown_to_plain(job.article_markdown or ""),
+            images=list(job.image_paths),  # 持久化后的本机绝对路径，供本机 MCP 读取
         )
     raise HTTPException(status_code=400, detail="需提供 note 或 job_id")
 
 
 def _markdown_to_plain(md: str) -> str:
-    text = re.sub(r"^#{1,6}\s*", "", md, flags=re.MULTILINE)  # 标题井号
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", md)  # 图片整体去掉
+    text = re.sub(r"^#{1,6}\s*", "", text, flags=re.MULTILINE)  # 标题井号
     text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)  # 链接保留文字
     text = re.sub(r"[*`>]", "", text)  # 粗体/代码/引用标记
     return text.strip()

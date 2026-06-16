@@ -69,6 +69,8 @@ class Job:
     article_markdown: Optional[str] = None
     preview_html: Optional[str] = None
     title: Optional[str] = None
+    images: list[str] = field(default_factory=list)  # 服务 URL（前端预览 / 发布）
+    image_paths: list[str] = field(default_factory=list)  # 持久化后的绝对磁盘路径（供本机 MCP 读取）
     # 事件流
     events: list[dict[str, Any]] = field(default_factory=list)
     _queue: asyncio.Queue = field(default_factory=asyncio.Queue)

@@ -102,9 +102,19 @@ npm run dev   # http://localhost:3000
 `GET /api/publish/{platform}/status`、`POST /api/publish/{platform}`、
 `DELETE /api/publish/{platform}/login`。
 
+### 图片产物链路
+
+主管道 Step 6 生成的封面/配图（`output/{slug}-cover.png`、`{slug}-figN.png`）在工作区清理
+**之前**被持久化到 `WEWRITE_ARTIFACT_ROOT/<job_id>/`，并：
+- 经 `GET /artifacts/<job_id>/<file>` 静态服务（前端画廊预览、`<img>`、发布渠道读取）
+- 写回成稿 markdown（本地相对路径 → `/artifacts/...` URL，使 markdown 自包含）
+- 发布时作为 `NotePayload.images`（本机绝对路径）传给小红书 MCP —— 满足图文笔记「至少 1 张图」
+
+> 生产应把产物换成对象存储（S3/OSS）+ CDN；远端 MCP 需共享卷或改用 URL/上传方式取图。
+
 > **待办/限制**：① 登录态（cookie）已按用户**加密存储**于 `Account.platform_login`，但参考
 > 的 xiaohongshu-mcp 是**单账号、cookie 存服务端**的——真正多租户需为每用户起独立 MCP 实例
 > 并注入各自 cookie（见 `publisher/xiaohongshu.py` 顶部 NOTE）。② 公众号长文 → 小红书图文
-> 需要内容改写 + 配图（图文笔记至少 1 张图）；当前从成稿取标题+正文，图片需后续补齐。
+> 的**内容改写**（短正文 + 标签 + 卡片化）尚未做；当前直接取成稿标题+正文+已持久化的配图。
 > ③ 浏览器自动化属平台 ToS 灰色地带，cookie 会过期、内容违规会封号，需向用户明示。
 ```
