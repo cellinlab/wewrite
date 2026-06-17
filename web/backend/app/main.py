@@ -30,13 +30,30 @@ app.include_router(publish.router)
 app.include_router(distribute.router)
 
 
+def _runner_ready(s) -> bool:
+    if s.runner != "container":
+        return True
+    import shutil
+    import subprocess
+    if not shutil.which("docker"):
+        return False
+    try:
+        r = subprocess.run(["docker", "image", "inspect", s.job_image],
+                           capture_output=True, timeout=5)
+        return r.returncode == 0
+    except Exception:  # noqa: BLE001
+        return False
+
+
 @app.get("/api/health")
 def health() -> dict:
     s = get_settings()
     return {
         "ok": True,
         "model": s.model,
-        "llm_key_configured": bool(s.anthropic_api_key),
+        "runner": s.runner,
+        "runner_ready": _runner_ready(s),
+        "llm_key_configured": bool(s.anthropic_api_key or s.anthropic_auth_token),
         "image_pool_configured": bool(s.image_config()),
         "skill_dir": str(s.skill_dir),
     }
