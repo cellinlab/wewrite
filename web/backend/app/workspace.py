@@ -104,6 +104,16 @@ def agent_env(settings: Settings, account: Account, *, theme: str) -> dict[str, 
     if settings.anthropic_base_url:
         env["ANTHROPIC_BASE_URL"] = settings.anthropic_base_url
 
+    # 混合路由：写作模型凭证（DeepSeek 等）注入 agent 进程 / 任务容器，供 scripts/llm_write.py 读取。
+    if settings.writer_api_key:
+        env["WEWRITE_WRITER_API_KEY"] = settings.writer_api_key
+        for k, v in (("WEWRITE_WRITER_PROVIDER", settings.writer_provider),
+                     ("WEWRITE_WRITER_BASE_URL", settings.writer_base_url),
+                     ("WEWRITE_WRITER_MODEL", settings.writer_model),
+                     ("WEWRITE_WRITER_TEMPERATURE", settings.writer_temperature)):
+            if v:
+                env[k] = v
+
     # 平台图片密钥池：provider 与 key 必须成对注入。
     # 若只注入 provider 而 key 为空，Step 1 会误判 skip_image_gen=false，
     # 直到 Step 6 才发现没法生成 —— 与 _write_config 一样用 image_config() gate 保持一致。

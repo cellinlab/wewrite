@@ -58,6 +58,8 @@ def health() -> dict:
         "runner_ready": _runner_ready(s),
         "llm_key_configured": bool(s.anthropic_api_key or s.anthropic_auth_token),
         "image_pool_configured": bool(s.image_config()),
+        "writer_configured": bool(s.writer_api_key),
+        "writer_model": s.writer_model if s.writer_api_key else None,
         "skill_dir": str(s.skill_dir),
     }
 

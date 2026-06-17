@@ -24,6 +24,14 @@ class Settings:
         # 质量优先可用 WEWRITE_MODEL=claude-opus-4-8 覆盖。
         self.model: str = os.environ.get("WEWRITE_MODEL", "claude-sonnet-4-6")
 
+        # 混合路由：内容生成卸载给便宜写作模型（DeepSeek 等，OpenAI 兼容协议）。
+        # 未配 writer_api_key → 管道降级为 Claude 自写（scripts/llm_write.py 退出码 3）。
+        self.writer_provider: str = os.environ.get("WEWRITE_WRITER_PROVIDER", "")
+        self.writer_api_key: str = os.environ.get("WEWRITE_WRITER_API_KEY", "")
+        self.writer_base_url: str = os.environ.get("WEWRITE_WRITER_BASE_URL", "")
+        self.writer_model: str = os.environ.get("WEWRITE_WRITER_MODEL", "")
+        self.writer_temperature: str = os.environ.get("WEWRITE_WRITER_TEMPERATURE", "")
+
         # 平台图片密钥池
         self.image_provider: str = os.environ.get("WEWRITE_IMAGE_PROVIDER", "")
         self.image_api_key: str = os.environ.get("WEWRITE_IMAGE_API_KEY", "")
