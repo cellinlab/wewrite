@@ -61,6 +61,18 @@ class Settings:
             if o.strip()
         ]
 
+        # ---- P1 并发 + 容器沙箱 ----
+        # runner：direct=进程内（本地、宿主登录态）；container=每任务 Docker 沙箱（线上、relay）
+        self.runner: str = os.environ.get("WEWRITE_RUNNER", "direct")
+        self.max_concurrent_jobs: int = int(os.environ.get("WEWRITE_MAX_CONCURRENT_JOBS", "3"))
+        self.max_per_user_jobs: int = int(os.environ.get("WEWRITE_MAX_PER_USER_JOBS", "1"))
+        self.job_image: str = os.environ.get("WEWRITE_JOB_IMAGE", "wewrite-job:latest")
+        self.job_cpus: str = os.environ.get("WEWRITE_JOB_CPUS", "2")
+        self.job_memory: str = os.environ.get("WEWRITE_JOB_MEMORY", "2g")
+        self.job_pids: int = int(os.environ.get("WEWRITE_JOB_PIDS", "512"))
+        self.job_timeout: float = float(os.environ.get("WEWRITE_JOB_TIMEOUT", "1200"))
+        self.job_network: str = os.environ.get("WEWRITE_JOB_NETWORK", "wewrite-jobs")
+
     def image_config(self) -> dict | None:
         """构造写入工作区 config.yaml 的 image 段（平台统一出 key）。"""
         if not self.image_provider or not self.image_api_key:
