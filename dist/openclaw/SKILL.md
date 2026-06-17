@@ -335,8 +335,8 @@ python3 {baseDir}/scripts/humanness_score.py {article_path} --json --tier3 {agen
 
 解读 JSON 中 `composite_score`（0=质量高, 100=问题多）：
 - < 30 → 通过，继续 Step 6
-- 30-50 → 查看 `param_scores` 中最低分的 1-2 项，只修复对应的具体句子（不重写整段），改完重新打分。1 轮即可
-- \> 50 → 取 `param_scores` 最低的 2-3 项，逐项定向修复（每项只改最相关的 1-2 处），最多 2 轮。仍 > 50 则标记 DONE_WITH_CONCERNS 继续
+- 30-50 → 查看 `param_scores` 中最低分的 1-2 项，只修复对应的具体句子（不重写整段），改完重新打分**恰好 1 次**。这一轮之后，只要分数仍 < 50 就直接进入 Step 6——**不得追加第 2 轮**（实测追加轮次常使分数不降反升，纯属浪费）
+- \> 50 → 取 `param_scores` 最低的 2-3 项，逐项定向修复（每项只改最相关的 1-2 处），重新打分。**最多 2 轮**，且任一轮一旦 < 50 或较上一轮没有改善就立即停；仍 > 50 则标记 DONE_WITH_CONCERNS 继续
 
 ---
 
@@ -350,28 +350,26 @@ python3 {baseDir}/scripts/humanness_score.py {article_path} --json --tier3 {agen
 
 **6.1 实体提取**：从终稿中提取 3-5 个**具体实体**（人物、产品名、场景、数据点、行业术语）。后续所有提示词必须包含至少 2 个实体。
 
-**6.2 封面生成**：生成封面 3 组创意提示词（按 visual-prompts.md），选最佳 1 组调用 image_gen.py 生成。
+**6.2 提示词 + 风格锚定**（一次性把全部提示词写齐，**不要生成一张等一张**）：
+1. 生成封面 3 组创意提示词（按 visual-prompts.md），选最佳 1 组。
+2. **从选定的封面提示词文本**（而非已渲染的图）提取视觉锚点：色板 hex、风格关键词、画面调性。锚点来自提示词本身，所以无需等封面图回来就能继续。
+3. 分析文章结构，为每个需要配图的段落选图片类型（infographic/scene/flowchart/comparison/framework/timeline），按 visual-prompts.md 模板写 3-6 张内文配图提示词；每张都引用第 2 步的视觉锚点，保证全文视觉一致。
+
+**6.3 一次性并行生成**：把封面 + 全部内文配图在**同一轮里并行发出**（一次性给出所有 image_gen.py 命令），不要逐张串行等待。封面用 `--size cover`，内文配图用 `--size article`；多 provider 自动 fallback 已内置。
 
 ```bash
-python3 {baseDir}/toolkit/image_gen.py --prompt "{选定的封面提示词}" --output {baseDir}/output/{slug}-cover.png --size cover
+python3 {baseDir}/toolkit/image_gen.py --prompt "{封面提示词}" --output {baseDir}/output/{slug}-cover.png --size cover
+python3 {baseDir}/toolkit/image_gen.py --prompt "{配图1提示词}" --output {baseDir}/output/{slug}-fig1.png --size article
+python3 {baseDir}/toolkit/image_gen.py --prompt "{配图2提示词}" --output {baseDir}/output/{slug}-fig2.png --size article
+# …其余配图同理，全部在同一轮一起发出
 ```
-（--size 取值：封面用 cover，内文配图用 article；多 provider 自动 fallback 已内置。）
+（环境不支持并行工具调用时可退化为顺序调用，但务必把全部图都生成。）
 
-**6.3 封面验证**：
-- **交互模式**：展示封面，问用户"封面效果如何？"。用户 OK → 继续；不满意 → 调整提示词重新生成。
-- **全自动模式**：agent 自检——提示词中的实体是否在画面描述中可识别？如果提示词过于泛化（仅含"科技感""未来感"等抽象词，无具体实体），换一组提示词重试 1 次。
+**6.4 一次性验证 + 插入**：
+- **全自动模式**：所有图返回后，**在一轮内**统一读取全部生成图做一次性自检——每张的核心实体是否可识别、风格是否一致。只对明显失败（实体不可辨 / 风格跑偏）的那一张换提示词重试 1 次，其余直接采用。**不要逐张读图、逐张推理**（那会把一次检查拆成多轮，显著拖慢）。
+- **交互模式**：展示封面（及配图），问用户"效果如何？"，不满意再针对性重生成。
 
-**6.3b 风格锚定**：封面确认后，提取视觉锚点（色板 hex、风格关键词、画面调性），后续所有内文配图的提示词必须引用这组锚点，保证全文视觉一致。
-
-**6.4 内文配图**：分析文章结构，为每个需要配图的段落选择图片类型（infographic/scene/flowchart/comparison/framework/timeline），使用对应的结构化提示词模板生成 3-6 张配图提示词（按 visual-prompts.md）。批量调用 image_gen.py，替换 Markdown 占位符。
-
-对每张需要的配图，逐一调用：
-
-```bash
-python3 {baseDir}/toolkit/image_gen.py --prompt "{该图的结构化提示词}" --output {baseDir}/output/{slug}-fig{N}.png --size article
-```
-
-生成后把对应 Markdown 图片占位符替换为实际路径。
+确认后把对应的 Markdown 图片占位符一次性替换为实际路径。
 
 **降级**：image_gen.py 支持多 provider 自动 fallback（按 config.yaml 中 providers 列表顺序尝试）。全部失败 → 输出提示词 + 备选图库关键词，继续。
 
