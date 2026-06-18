@@ -39,14 +39,6 @@ colors:
     highlight_bg: "#2a2518"
 # --- 特殊标记 ---
 aigc_footer: true
-css_randomize: true
-css_randomize_ranges:
-  body_font_size: [16, 17]
-  body_line_height: [1.8, 1.95]
-  body_letter_spacing: [0.2, 0.5]
-  p_margin_bottom: [20, 28]
-  h2_font_size: [21, 23]
-  h2_margin_top: [36, 44]
 base_css: |
   body {
     font-family: 'Noto Serif SC', 'Source Han Serif SC', Georgia, 'Songti SC', 'SimSun', serif;

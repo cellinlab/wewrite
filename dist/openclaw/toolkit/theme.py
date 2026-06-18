@@ -74,7 +74,7 @@ def load_theme(name: str, themes_dir: str = None) -> Theme:
         base_css=data["base_css"],
         colors=data.get("colors", {}),
     )
-    # Attach raw data for extra fields (aigc_footer, css_randomize, etc.)
+    # Attach raw data for extra fields (aigc_footer, etc.)
     theme._raw_data = data
     return theme
 

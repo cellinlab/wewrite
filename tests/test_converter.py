@@ -303,29 +303,33 @@ class TestAIGCFooter:
         result = imp_converter.convert("# T\n\n内容")
         assert "AI 辅助创作" in result.html
 
-    def test_professional_clean_no_aigc_footer(self, converter):
+    def test_default_theme_has_aigc_footer(self, converter):
+        """AIGC footer is appended by default (合规标识)，即使主题没显式开启。"""
         result = converter.convert("# T\n\n内容")
+        assert "AI 辅助创作" in result.html
+
+    def test_aigc_footer_can_be_disabled(self, pro_theme):
+        """aigc_footer: false 显式关闭脚注。"""
+        data = dict(getattr(pro_theme, "_raw_data", {}) or {})
+        data["aigc_footer"] = False
+        pro_theme._raw_data = data
+        result = WeChatConverter(theme=pro_theme).convert("# T\n\n内容")
         assert "AI 辅助创作" not in result.html
 
 
 # ===================================================================
-# 7. CSS randomization
+# 7. Deterministic output (CSS fingerprint perturbation removed)
 # ===================================================================
 
-class TestCSSRandomization:
-    def test_output_varies_between_runs(self, imp_theme):
-        """Run conversion multiple times; at least some outputs should differ."""
-        md = "# T\n\n段落文本内容，需要足够长才能触发随机化。\n\n## 二级标题\n\n更多段落。"
-        outputs = set()
-        for _ in range(10):
-            c = WeChatConverter(theme=imp_theme)
-            result = c.convert(md)
-            outputs.add(result.html)
-        # With randomization, we expect at least 2 distinct outputs in 10 runs
-        assert len(outputs) >= 2, "CSS randomization did not produce varied output"
+class TestDeterministicOutput:
+    def test_impeccable_output_deterministic(self, imp_theme):
+        """CSS 防指纹随机扰动已移除——同一输入应产出完全一致的 HTML。"""
+        md = "# T\n\n段落文本内容。\n\n## 二级标题\n\n更多段落。"
+        outputs = {WeChatConverter(theme=imp_theme).convert(md).html for _ in range(5)}
+        assert len(outputs) == 1
 
     def test_professional_clean_no_randomization(self, pro_theme):
-        """professional-clean has no css_randomize — output should be deterministic."""
+        """professional-clean output is deterministic (no perturbation)."""
         md = "# T\n\n段落文本。\n\n## 二级标题"
         outputs = set()
         for _ in range(5):

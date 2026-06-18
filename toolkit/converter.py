@@ -5,7 +5,6 @@ Forked from wechat_article_skills/scripts/markdown_to_html.py,
 adapted for YAML-driven themes and agent integration.
 """
 
-import random
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -83,12 +82,11 @@ class WeChatConverter:
         # Inject dark mode attributes
         html = self._inject_darkmode(html)
 
-        # Apply CSS randomization if enabled (anti-fingerprint for WeChat low-creativity detection)
-        if self._theme.colors.get("css_randomize") or getattr(self._theme, '_raw_data', {}).get('css_randomize'):
-            html = self._randomize_css(html)
-
-        # Append AIGC declaration if theme enables it
-        if self._theme.colors.get("aigc_footer") or getattr(self._theme, '_raw_data', {}).get('aigc_footer'):
+        # Append AIGC declaration footer by default（合规：AI 生成/辅助内容需标识；
+        # 主题或配置显式设 aigc_footer: false 才关闭）。
+        raw = getattr(self._theme, '_raw_data', {}) or {}
+        aigc = raw.get('aigc_footer', self._theme.colors.get('aigc_footer', True))
+        if aigc:
             html = self._append_aigc_footer(html)
 
         # Generate digest from plain text
@@ -524,74 +522,6 @@ class WeChatConverter:
                   'margin-top: 48px; padding-top: 24px; border-top: 1px solid #e5e7eb;">'
                   '本文由 AI 辅助创作，作者进行了实测验证和编辑修改。</p>')
         return html + '\n' + footer
-
-    # -- CSS randomization (anti-fingerprint) --
-
-    def _randomize_css(self, html: str) -> str:
-        """Apply random CSS perturbations to defeat WeChat low-creativity fingerprinting.
-
-        Slightly varies font-size, line-height, letter-spacing, margins etc.
-        so each article has a unique HTML fingerprint instead of identical templates.
-        """
-        soup = BeautifulSoup(html, "html.parser")
-
-        # Randomize body-level wrapper (first section or all p tags)
-        font_size_delta = random.choice([0, -1])  # 16 or 17
-        line_height_delta = random.uniform(-0.1, 0.05)
-        letter_spacing_delta = random.uniform(-0.1, 0.2)
-        margin_delta = random.randint(-4, 4)
-
-        for p in soup.find_all("p"):
-            style = p.get("style", "")
-            if not style:
-                continue
-            # Randomize margin-bottom
-            style = re.sub(
-                r'margin:\s*0\s+0\s+(\d+)px\s+0',
-                lambda m: f'margin: 0 0 {int(m.group(1)) + random.randint(-3, 3)}px 0',
-                style
-            )
-            # Randomize font-size if present
-            style = re.sub(
-                r'font-size:\s*17px',
-                f'font-size: {17 + font_size_delta}px',
-                style
-            )
-            # Randomize line-height if present
-            style = re.sub(
-                r'line-height:\s*1\.9',
-                f'line-height: {1.9 + line_height_delta:.2f}',
-                style
-            )
-            p["style"] = style
-
-        # Randomize h2 margins
-        for h2 in soup.find_all("h2"):
-            style = h2.get("style", "")
-            style = re.sub(
-                r'margin:\s*(\d+)px',
-                lambda m: f'margin: {int(m.group(1)) + random.randint(-3, 3)}px',
-                style
-            )
-            style = re.sub(
-                r'font-size:\s*22px',
-                f'font-size: {22 + random.choice([-1, 0, 1])}px',
-                style
-            )
-            h2["style"] = style
-
-        # Randomize letter-spacing on body-level container
-        for section in soup.find_all("section", recursive=False):
-            style = section.get("style", "")
-            if "letter-spacing" in style:
-                style = re.sub(
-                    r'letter-spacing:\s*[\d.]+px',
-                    f'letter-spacing: {0.3 + letter_spacing_delta:.1f}px',
-                    style
-                )
-                section["style"] = style
-
-        return str(soup)
 
     def _process_highlight(self, text: str) -> str:
         """Convert :::highlight blocks to amber highlight info boxes (Impeccable style)."""
