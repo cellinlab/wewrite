@@ -1,47 +1,58 @@
 #!/usr/bin/env bash
-# WeWrite 安装脚本：venv 依赖 + Claude Code skill 符号链接
+# WeWrite 安装脚本（v2.2 起）：wewrite CLI + skill 符号链接 + 旧状态迁移
 #
-# 1) 在仓库根的 .venv 里创建虚拟环境并安装 requirements。
-#    解决 macOS Homebrew Python 3.11+ 的 PEP 668
-#    (externally-managed-environment) 限制 —— 该限制会让直接
-#    `pip install -r requirements.txt` 报错。
-# 2) 把 skills/ 下的主入口 wewrite 与各 wewrite-* 模块逐个
-#    符号链接到 ~/.claude/skills/（v2.0 模块化架构；v1.x 的
-#    整仓单链接方式已废弃，本脚本会自动替换同名旧链接）。
+# 1) 安装 `wewrite` CLI（确定性工具层，pip 包）：
+#    优先 uv tool install，其次 pipx；都没有则回退仓库内 venv +
+#    editable 安装并链接到 ~/.local/bin（绕过 macOS PEP 668）。
+#    在 dist 拷贝（无 pyproject.toml）里运行时自动改为从 git 安装。
+# 2) 把 skills/ 下的主入口与各 wewrite-* 模块符号链接到
+#    ~/.claude/skills/ 和 ~/.agents/skills/（可用环境变量覆盖）。
+# 3) 检测到 v2.1 之前留在仓库根的用户状态（style.yaml 等）时，
+#    执行 `wewrite migrate` 迁到 $WEWRITE_HOME（默认 ~/.wewrite，幂等）。
 #
 # 用法：  bash install.sh
-# 幂等：  可重复运行，已存在的 venv 不会重建，链接原地更新。
-#
-# 安装后无需手动 activate —— 各 SKILL.md 会自动优先使用
-# .venv/bin/python3（见 SKILL.md 的「Python 解释器约定」）。
+# 幂等：  可重复运行。
 
 set -euo pipefail
 
 cd "$(dirname "$0")"
-
-PYTHON="${PYTHON:-python3}"
-
-if ! command -v "$PYTHON" >/dev/null 2>&1; then
-  echo "✗ 找不到 $PYTHON。请先安装 Python 3.11+（macOS: brew install python）。" >&2
-  exit 1
-fi
-
-if [ ! -d .venv ]; then
-  echo "→ 创建虚拟环境 .venv ..."
-  "$PYTHON" -m venv .venv
-else
-  echo "→ 复用已有的 .venv"
-fi
-
-echo "→ 安装依赖到 .venv ..."
-.venv/bin/python -m pip install --upgrade pip >/dev/null
-.venv/bin/python -m pip install -r requirements.txt
-
-echo ""
-echo "✓ 依赖已装入 $(pwd)/.venv（无需手动 activate，skill 运行时自动使用）"
-
-# ---- skill 链接：Claude Code + Agent-Skills 标准目录（可用环境变量覆盖）----
 REPO="$(pwd)"
+
+GIT_SRC="git+https://github.com/oaker-io/wewrite.git"
+SRC="$REPO"
+[ -f "$REPO/pyproject.toml" ] || SRC="$GIT_SRC"
+
+# ---- 1) wewrite CLI ----
+echo "→ 安装 wewrite CLI（来源: $SRC）..."
+if command -v uv >/dev/null 2>&1; then
+  uv tool install --force "$SRC"
+elif command -v pipx >/dev/null 2>&1; then
+  pipx install --force "$SRC"
+else
+  echo "  （未找到 uv/pipx，回退 venv editable 安装）"
+  PYTHON="${PYTHON:-python3}"
+  if ! command -v "$PYTHON" >/dev/null 2>&1; then
+    echo "✗ 找不到 $PYTHON。请先安装 Python 3.11+（macOS: brew install python）。" >&2
+    exit 1
+  fi
+  [ -d .venv ] || "$PYTHON" -m venv .venv
+  .venv/bin/python -m pip install --upgrade pip >/dev/null
+  if [ -f "$REPO/pyproject.toml" ]; then
+    .venv/bin/python -m pip install -e "$REPO"
+  else
+    .venv/bin/python -m pip install "$GIT_SRC"
+  fi
+  mkdir -p "$HOME/.local/bin"
+  ln -sfn "$REPO/.venv/bin/wewrite" "$HOME/.local/bin/wewrite"
+  case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) echo "⚠ 请把 ~/.local/bin 加入 PATH（wewrite 命令链接在那里）" >&2 ;;
+  esac
+fi
+command -v wewrite >/dev/null 2>&1 && echo "✓ wewrite CLI 就绪：$(command -v wewrite)" \
+  || echo "⚠ 当前 shell 尚未找到 wewrite，重开终端或检查 PATH" >&2
+
+# ---- 2) skill 链接：Claude Code + Agent-Skills 标准目录 ----
 DESTS=("${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}" "${AGENTS_SKILLS_DIR:-$HOME/.agents/skills}")
 if [ -d skills ]; then
   for SKILLS_TARGET in "${DESTS[@]}"; do
@@ -67,3 +78,14 @@ if [ -d skills ]; then
   done
   echo "  单独激活示例：/wewrite-topic 选题、/wewrite-review 自检、/wewrite-rewrite 多平台改写"
 fi
+
+# ---- 3) 旧状态迁移（v2.1 之前状态在仓库根）----
+if command -v wewrite >/dev/null 2>&1; then
+  if [ -f "$REPO/style.yaml" ] || [ -f "$REPO/history.yaml" ] || [ -f "$REPO/config.yaml" ]; then
+    echo "→ 检测到仓库根有旧版用户状态，迁移到 $(wewrite home) ..."
+    wewrite migrate --from "$REPO"
+  fi
+fi
+
+echo ""
+echo "✓ 完成。状态目录: $(command -v wewrite >/dev/null 2>&1 && wewrite home || echo '~/.wewrite')"

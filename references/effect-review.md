@@ -3,7 +3,7 @@
 **触发**：用户问"文章数据怎么样"、"效果复盘"、"看看表现"
 
 ```bash
-python3 {skill_dir}/scripts/fetch_stats.py --days 7
+wewrite stats --days 7
 ```
 
 脚本会：

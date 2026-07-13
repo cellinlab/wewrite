@@ -21,7 +21,8 @@ allowed-tools:
 ## 运行约定
 
 - **{root}** = `{skill_dir}/root`（本目录内指向 WeWrite 仓库根的符号链接）。
-- **Python**：优先 venv——`PY="{root}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"`；下文 `python3` 均指 `$PY`。
+- **CLI**：确定性操作走 `wewrite` 命令（需在 PATH；缺失则引导 `bash {root}/install.sh` 安装）。
+- **{home}**：用户状态目录 = `$WEWRITE_HOME` 或 `~/.wewrite`（`wewrite home` 可查）。config/style/history/playbook/output/exemplars 全在 {home}，不在仓库；references 文档中的状态路径同此约定。
 - **`读取: <路径>`** = 用文件读取工具真实读完该文件再继续，不是注释。
 - **references/ 文档中的 `{skill_dir}`** 一律指 `{root}`（历史约定，指仓库根）。
 <!-- wewrite:standalone-end -->
@@ -30,11 +31,11 @@ allowed-tools:
 
 | 用户说 | 动作 |
 |--------|------|
-| 学习我的修改 / 我改了，学习一下 | `读取: {root}/references/learn-edits.md`，按其流程执行。支持本地 markdown 修改与微信草稿箱同步（`python3 {root}/scripts/learn_edits.py --from-wechat`） |
-| 学习排版 / 学排版 + URL | `python3 {root}/scripts/learn_theme.py <url> --name <name>`，提取后提示用户设置 style.yaml 的 theme 字段 |
-| 学习这篇文章 / 导入范文 + URL | `python3 {root}/scripts/fetch_article.py <url> -o /tmp/article.md && python3 {root}/scripts/extract_exemplar.py /tmp/article.md -s <账号名>` |
-| 导入范文 + 本地文件 | `python3 {root}/scripts/extract_exemplar.py <文件路径>`（多文件可批量） |
-| 查看范文库 | `python3 {root}/scripts/extract_exemplar.py --list` |
+| 学习我的修改 / 我改了，学习一下 | `读取: {root}/references/learn-edits.md`，按其流程执行。支持本地 markdown 修改与微信草稿箱同步（`wewrite learn-edits --from-wechat`） |
+| 学习排版 / 学排版 + URL | `wewrite learn-theme <url> --name <name>`，提取后提示用户设置 style.yaml 的 theme 字段 |
+| 学习这篇文章 / 导入范文 + URL | `wewrite fetch-article <url> -o /tmp/article.md && wewrite exemplar /tmp/article.md -s <账号名>` |
+| 导入范文 + 本地文件 | `wewrite exemplar <文件路径>`（多文件可批量） |
+| 查看范文库 | `wewrite exemplar --list` |
 
 **范文库的用途**：exemplars 会在写作模块（wewrite-write）按框架类型注入初稿 prompt，
 是 SICO 式 few-shot 的来源。导入完成后告知用户库里现有多少篇、覆盖哪些 category。

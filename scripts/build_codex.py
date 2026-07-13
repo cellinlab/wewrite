@@ -36,7 +36,7 @@ CODEX_HEADER = """\
 **Codex 运行环境差异（相对 Claude Code 版）**：
 - 没有 TaskCreate/TaskUpdate 工具 —— 每进入一个 Step，用一句话报进度（如「[3/8] 框架 + 素材」）。
 - 联网搜索用 Codex 的 `web_search`；读写文件、执行命令用 Codex 自带的 shell / 文件工具。
-- 所有 `python3` 命令见下方「Python 解释器约定」（优先用 {skill_dir}/.venv/bin/python3）。
+- 确定性操作走 `wewrite` CLI（安装：`uv tool install git+https://github.com/oaker-io/wewrite` 或 `bash {skill_dir}/install.sh`）。
 
 ---
 

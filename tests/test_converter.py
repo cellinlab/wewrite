@@ -9,25 +9,25 @@ title/digest extraction, and theme integration.
 import sys
 from pathlib import Path
 
-# Ensure toolkit/ is importable (converter.py uses `from theme import ...`)
-TOOLKIT_DIR = str(Path(__file__).resolve().parent.parent / "toolkit")
-if TOOLKIT_DIR not in sys.path:
-    sys.path.insert(0, TOOLKIT_DIR)
+# Ensure src/ is importable (package layout since v2.2)
+SRC_DIR = str(Path(__file__).resolve().parent.parent / "src")
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
 
 import re
 
 import pytest
 from bs4 import BeautifulSoup
 
-from converter import ConvertResult, WeChatConverter, preview_html
-from theme import Theme, load_theme
+from wewrite.toolkit.converter import ConvertResult, WeChatConverter, preview_html
+from wewrite.toolkit.theme import Theme, load_theme
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
-THEMES_DIR = str(Path(__file__).resolve().parent.parent / "toolkit" / "themes")
+THEMES_DIR = str(Path(__file__).resolve().parent.parent / "src" / "wewrite" / "toolkit" / "themes")
 
 
 @pytest.fixture

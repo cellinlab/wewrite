@@ -19,17 +19,18 @@ allowed-tools:
 ## 运行约定
 
 - **{root}** = `{skill_dir}/root`（本目录内指向 WeWrite 仓库根的符号链接）。
-- **Python**：优先 venv——`PY="{root}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"`；下文 `python3` 均指 `$PY`。
+- **CLI**：确定性操作走 `wewrite` 命令（需在 PATH；缺失则引导 `bash {root}/install.sh` 安装）。
+- **{home}**：用户状态目录 = `$WEWRITE_HOME` 或 `~/.wewrite`（`wewrite home` 可查）。config/style/history/playbook/output/exemplars 全在 {home}，不在仓库；references 文档中的状态路径同此约定。
 - **`读取: <路径>`** = 用文件读取工具真实读完该文件再继续，不是注释。
 - **references/ 文档中的 `{skill_dir}`** 一律指 `{root}`（历史约定，指仓库根）。
-- **管道状态**：`{root}/output/_state.yaml`（契约见 `{root}/references/pipeline-state.md`）。
+- **管道状态**：`{home}/output/_state.yaml`（契约见 `{root}/references/pipeline-state.md`）。
 
 ## 前置
 
-1. **文章**：用户指定的文件 > `_state.yaml` 的 `article` > `output/article.md`。
+1. **文章**：用户指定的文件 > `_state.yaml` 的 `article` > `{home}/output/article.md`。
    都没有 → 问用户"给哪篇文章配图？"
 2. **降级标记**：读 `_state.yaml` 的 `flags.skip_image_gen`；缺失或 `diagnosed_at`
-   非当天 → `python3 {root}/scripts/diagnose.py --json` 重取并写回。
+   非当天 → `wewrite diagnose --json` 重取并写回。
 3. style.yaml 的 `cover_style` / `cover_template`（有则作为封面风格约束）。
 <!-- wewrite:standalone-end -->
 
@@ -48,16 +49,16 @@ allowed-tools:
 2. **从选定的封面提示词文本**（而非已渲染的图）提取视觉锚点：色板 hex、风格关键词、画面调性。锚点来自提示词本身，所以无需等封面图回来就能继续。
 3. 分析文章结构，为每个需要配图的段落选图片类型（infographic/scene/flowchart/comparison/framework/timeline），按 visual-prompts.md 模板写 3-6 张内文配图提示词；每张都引用第 2 步的视觉锚点，保证全文视觉一致。
 
-**6.3 生成全部图片（封面 + 内文配图，必须实际生成 .png，不能只写提示词就算完成）**：把封面与每张内文配图都用 `image_gen.py` 实际生成出来。封面 `--size cover`，内文配图 `--size article`；多 provider 自动 fallback 已内置。**一次性把全部命令发出**（环境支持并行工具调用就并行，不支持就顺序，但务必把全部图都生成）：
+**6.3 生成全部图片（封面 + 内文配图，必须实际生成 .png，不能只写提示词就算完成）**：把封面与每张内文配图都用 `wewrite image-gen` 实际生成出来。封面 `--size cover`，内文配图 `--size article`；多 provider 自动 fallback 已内置。**一次性把全部命令发出**（环境支持并行工具调用就并行，不支持就顺序，但务必把全部图都生成）：
 
 ```bash
-python3 {root}/toolkit/image_gen.py --prompt "{封面提示词}" --output {root}/output/{slug}-cover.png --size cover
-python3 {root}/toolkit/image_gen.py --prompt "{配图1提示词}" --output {root}/output/{slug}-fig1.png --size article
-python3 {root}/toolkit/image_gen.py --prompt "{配图2提示词}" --output {root}/output/{slug}-fig2.png --size article
+wewrite image-gen --prompt "{封面提示词}" --output {home}/output/{slug}-cover.png --size cover
+wewrite image-gen --prompt "{配图1提示词}" --output {home}/output/{slug}-fig1.png --size article
+wewrite image-gen --prompt "{配图2提示词}" --output {home}/output/{slug}-fig2.png --size article
 # …其余配图同理，全部生成
 ```
-> 提示词只是中间产物——**本模块完成的标志是 `output/` 下真的出现了这些 .png 文件**，不是把提示词写进某个 md 就完事。
-> 也可用一条命令批量并发（等价、工具内并行）：把 `[{"prompt","output","size"}…]` 写进 `output/_images.json`，再 `python3 {root}/toolkit/image_gen.py --manifest {root}/output/_images.json`。
+> 提示词只是中间产物——**本模块完成的标志是 `{home}/output/` 下真的出现了这些 .png 文件**，不是把提示词写进某个 md 就完事。
+> 也可用一条命令批量并发（等价、工具内并行）：把 `[{"prompt","output","size"}…]` 写进 `{home}/output/_images.json`，再 `wewrite image-gen --manifest {home}/output/_images.json`。
 
 **6.4 一次性验证 + 插入**：
 - **全自动模式**：所有图返回后，**在一轮内**统一确认每张 .png 都已生成（核心实体可识别、风格一致）。只对明显失败（实体不可辨 / 风格跑偏 / 没生成）的那一张换提示词重试 1 次，其余直接采用。**不要逐张读图、逐张推理**（那会把一次检查拆成多轮，显著拖慢）。
@@ -65,7 +66,7 @@ python3 {root}/toolkit/image_gen.py --prompt "{配图2提示词}" --output {root
 
 确认后把对应的 Markdown 图片占位符一次性替换为实际路径。
 
-**降级**：image_gen.py 支持多 provider 自动 fallback（按 config.yaml 中 providers 列表顺序尝试）。全部失败 → 输出提示词 + 备选图库关键词，继续。
+**降级**：`wewrite image-gen` 支持多 provider 自动 fallback（按 config.yaml 中 providers 列表顺序尝试）。全部失败 → 输出提示词 + 备选图库关键词，继续。
 
 ## 完成
 

@@ -19,18 +19,19 @@ allowed-tools:
 ## 运行约定
 
 - **{root}** = `{skill_dir}/root`（本目录内指向 WeWrite 仓库根的符号链接）。
-- **Python**：优先 venv——`PY="{root}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"`；下文 `python3` 均指 `$PY`。
+- **CLI**：确定性操作走 `wewrite` 命令（需在 PATH；缺失则引导 `bash {root}/install.sh` 安装）。
+- **{home}**：用户状态目录 = `$WEWRITE_HOME` 或 `~/.wewrite`（`wewrite home` 可查）。config/style/history/playbook/output/exemplars 全在 {home}，不在仓库；references 文档中的状态路径同此约定。
 - **`读取: <路径>`** = 用文件读取工具真实读完该文件再继续，不是注释。
 - **references/ 文档中的 `{skill_dir}`** 一律指 `{root}`（历史约定，指仓库根）。
-- **管道状态**：`{root}/output/_state.yaml`（契约见 `{root}/references/pipeline-state.md`）。
+- **管道状态**：`{home}/output/_state.yaml`（契约见 `{root}/references/pipeline-state.md`）。
 <!-- wewrite:standalone-end -->
 
 ## 前置
 
-1. **源文章**：按优先级解析——用户指定的文件/粘贴内容 > `output/_state.yaml` 的
-   `article` 字段 > `output/article.md`。都没有 → 问用户"要改写哪篇？给我文件路径
-   或直接粘贴全文"。确定后把源复制/保存为 `{root}/output/source.md`（质量门要用）。
-2. **目标平台**：用户点名了就用；没点名 → 列出 `{root}/toolkit/platforms/` 下的可用
+1. **源文章**：按优先级解析——用户指定的文件/粘贴内容 > `{home}/output/_state.yaml` 的
+   `article` 字段 > `{home}/output/article.md`。都没有 → 问用户"要改写哪篇？给我文件路径
+   或直接粘贴全文"。确定后把源复制/保存为 `{home}/output/source.md`（质量门要用）。
+2. **目标平台**：用户点名了就用；没点名 → 列出 `{root}/src/wewrite/toolkit/platforms/` 下的可用
    平台（当前：xiaohongshu 小红书、douyin 抖音）问用户要哪几个，或"全部"。
 
 ## 执行
@@ -41,13 +42,13 @@ allowed-tools:
 
 对每个目标平台：
 
-1. `读取: {root}/toolkit/platforms/<id>.yaml`，按其 `rewrite_brief`、字数区间、
+1. `读取: {root}/src/wewrite/toolkit/platforms/<id>.yaml`，按其 `rewrite_brief`、字数区间、
    标签数、输出格式改写。
 2. 遵守 multiplatform-rewrite.md 的原创铁律（内容级真改，重构信息顺序/开头/表达，
    不是洗稿）与人设一致要求（persona 内核不变，只适配表达方式）。
 3. 过双质量门（multiplatform-rewrite.md「质量门」小节）：humanness ≥ 0.6、
    与源及其他平台版本的 `max_similarity` ≤ 0.6；不过重写该版本，最多 2 次。
-4. 写到 `output/<platform 的 output_filename>`。
+4. 写到 `{home}/output/<platform 的 output_filename>`。
 
 ## 完成
 

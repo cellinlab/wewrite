@@ -18,14 +18,15 @@ allowed-tools:
 ## 运行约定
 
 - **{root}** = `{skill_dir}/root`（本目录内指向 WeWrite 仓库根的符号链接）。
-- **Python**：优先 venv——`PY="{root}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"`；下文 `python3` 均指 `$PY`。
+- **CLI**：确定性操作走 `wewrite` 命令（需在 PATH；缺失则引导 `bash {root}/install.sh` 安装）。
+- **{home}**：用户状态目录 = `$WEWRITE_HOME` 或 `~/.wewrite`（`wewrite home` 可查）。config/style/history/playbook/output/exemplars 全在 {home}，不在仓库；references 文档中的状态路径同此约定。
 - **`读取: <路径>`** = 用文件读取工具真实读完该文件再继续，不是注释。
 - **references/ 文档中的 `{skill_dir}`** 一律指 `{root}`（历史约定，指仓库根）。
-- **管道状态**：`{root}/output/_state.yaml`（契约见 `{root}/references/pipeline-state.md`）。
+- **管道状态**：`{home}/output/_state.yaml`（契约见 `{root}/references/pipeline-state.md`）。
 
 ## 前置
 
-1. **文章**：用户指定的文件 > `_state.yaml` 的 `article` > `output/article.md`。
+1. **文章**：用户指定的文件 > `_state.yaml` 的 `article` > `{home}/output/article.md`。
    都没有 → 问用户"要检查哪篇？"
 2. 本会话若未读过 `{root}/references/writing-guide.md` → 读取（5.2 校验按其编号规则
    1.1-3.2 检查；管道模式下 wewrite-write 已读，保持驻留不要重读）。
@@ -66,7 +67,7 @@ allowed-tools:
 **5.3 反 AI 评分（顺手跑一次当参考，别为分数返工）**：
 
 ```bash
-python3 {root}/scripts/humanness_score.py output/article.md --json
+wewrite score output/article.md --json
 ```
 
 `composite_score`（0=好,100=差）只当**参考信号**，不是过线门：
@@ -74,7 +75,7 @@ python3 {root}/scripts/humanness_score.py output/article.md --json
 - **别为了压低分数反复重写**：实测这个分单次方差很大（~31-50），且刻意拉满会触发"过度优化"反而更差。**读着顺、没硬伤就进下一步**。
 - 真正的质量门是**人**：作者在编辑锚点处补自己的话、复审定稿。把 `composite_score` 记进状态（收尾时进 history）当长期参考即可。
 
-（委托模式想再润一版：把"最弱 1-2 个 param + 具体改写要求"追加进 `output/_brief.md` 重生成**一次**，不多轮。）
+（委托模式想再润一版：把"最弱 1-2 个 param + 具体改写要求"追加进 `{home}/output/_brief.md` 重生成**一次**，不多轮。）
 
 **完成**：写回 `_state.yaml`：`seo.title`、`seo.alt_titles`、`seo.digest`、`seo.tags`、
 `seo.composite_score`，`steps_done` 追加 `review`。
@@ -84,11 +85,11 @@ python3 {root}/scripts/humanness_score.py output/article.md --json
 对最近一篇生成的文章（或用户指定的文章）执行，输出生成报告：
 
 **第一部分：生成档案**（这篇是怎么来的）
-1. 读取 `{root}/history.yaml` 最近一条记录，提取：使用的框架类型 + 写作人格、激活的维度随机化组合、素材采集来源（WebSearch 还是降级到 LLM）、内容增强策略、范文库是否命中（用了哪几篇 exemplar 还是 fallback 到种子）、playbook 中生效的规则条数。
+1. 读取 `{home}/history.yaml` 最近一条记录，提取：使用的框架类型 + 写作人格、激活的维度随机化组合、素材采集来源（WebSearch 还是降级到 LLM）、内容增强策略、范文库是否命中（用了哪几篇 exemplar 还是 fallback 到种子）、playbook 中生效的规则条数。
 2. 若 history.yaml 无记录或用户指定了外部文章 → 跳过此部分，提示"这篇文章不是 WeWrite 生成的，只做质量检查"。
 
 **第二部分：质量检查**（哪里还能改）
-1. `python3 {root}/scripts/humanness_score.py {article_path} --json`
+1. `wewrite score {article_path} --json`
 2. Agent 解读 JSON 各项得分，翻译成可操作建议：每条定位到具体段落/句子、给出具体改法、按影响度排序最多 5 条。
 3. 若各项得分都不错 → "这篇文章质量不错，建议在编辑锚点处加入你的个人内容就可以发了。"
 

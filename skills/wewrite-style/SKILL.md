@@ -19,7 +19,8 @@ allowed-tools:
 ## 运行约定
 
 - **{root}** = `{skill_dir}/root`（本目录内指向 WeWrite 仓库根的符号链接）。
-- **Python**：优先 venv——`PY="{root}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"`；下文 `python3` 均指 `$PY`。
+- **CLI**：确定性操作走 `wewrite` 命令（需在 PATH；缺失则引导 `bash {root}/install.sh` 安装）。
+- **{home}**：用户状态目录 = `$WEWRITE_HOME` 或 `~/.wewrite`（`wewrite home` 可查）。config/style/history/playbook/output/exemplars 全在 {home}，不在仓库；references 文档中的状态路径同此约定。
 - **`读取: <路径>`** = 用文件读取工具真实读完该文件再继续，不是注释。
 - **references/ 文档中的 `{skill_dir}`** 一律指 `{root}`（历史约定，指仓库根）。
 - 本模块是**交互式**的（需要问用户问题），不受主管道"全自动"约束。
@@ -28,7 +29,7 @@ allowed-tools:
 ## 执行
 
 **触发场景**：
-1. 主入口 Step 1 发现 `{root}/style.yaml` 不存在（首次使用）
+1. 主入口 Step 1 发现 `{home}/style.yaml` 不存在（首次使用）
 2. 用户说"重新设置风格"、"修改配置"
 
 两种场景都执行：
@@ -37,7 +38,7 @@ allowed-tools:
 读取: {root}/references/onboard.md
 ```
 
-按 onboard.md 的 Phase 1-4 完成：交互式收集信息 → 生成 `{root}/style.yaml` →
+按 onboard.md 的 Phase 1-4 完成：交互式收集信息 → 生成 `{home}/style.yaml` →
 可选 Playbook 建库 → 试跑询问。重设风格时以现有 style.yaml 为基线，只改用户要改的字段，
 改完展示全文让用户确认。
 

@@ -8,13 +8,13 @@
 
 ## 1. 获取 draft 和 final
 
-- **draft**：`output/` 下最新的 .md 文件（按修改时间排序，用 `ls -t output/*.md | head -1`）
+- **draft**：`{home}/output/` 下最新的 .md 文件（按修改时间排序，用 `ls -t $(wewrite home)/output/*.md | head -1`）
 - **final**：用户提供修改后的版本。主动引导用户："请把你改好的文章全文粘贴给我，或者告诉我文件路径。如果你是在微信后台编辑器里改的，可以全选复制后直接粘贴到这里。"
 
 ## 2. 运行 diff 分析
 
 ```bash
-python3 {skill_dir}/scripts/learn_edits.py --draft {draft_path} --final {final_path}
+wewrite learn-edits --draft {draft_path} --final {final_path}
 ```
 
 ## 3. 分析并记录 pattern
@@ -36,10 +36,10 @@ python3 {skill_dir}/scripts/learn_edits.py --draft {draft_path} --final {final_p
 每积累 5 次 lessons，触发 playbook 更新：
 
 ```bash
-python3 {skill_dir}/scripts/learn_edits.py --summarize --json
+wewrite learn-edits --summarize --json
 ```
 
-读取 JSON 输出，按以下规则更新 `{skill_dir}/playbook.md`：
+读取 JSON 输出，按以下规则更新 `{home}/playbook.md`：
 
 ### playbook.md 格式
 

@@ -38,7 +38,7 @@ author: "署名"
 
 ## 可用排版主题
 
-运行 `python3 toolkit/cli.py gallery` 可在浏览器中预览所有主题的实际效果。
+运行 `wewrite gallery` 可在浏览器中预览所有主题的实际效果。
 
 | 主题 | 说明 |
 |------|------|

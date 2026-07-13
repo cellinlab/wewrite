@@ -41,16 +41,16 @@ PATH_NOTE_MODULAR = (
 PATH_NOTE_MERGED = "**路径约定**：本文档中 `{skill_dir}` 指本 SKILL.md 所在的目录（即 WeWrite 的根目录）。"
 
 # Directories to copy alongside SKILL.md
-COPY_DIRS = ["references", "scripts", "toolkit", "personas"]
+# （v2.2 起运行时代码在 pip 包 `wewrite` 里，dist 只需 prompt 层资产）
+COPY_DIRS = ["references", "personas"]
 
 # Files to copy alongside SKILL.md
 COPY_FILES = [
-    "requirements.txt",
     "config.example.yaml",
     "style.example.yaml",
     "writing-config.example.yaml",
     "VERSION",
-    "install.sh",  # creates .venv next to the copied SKILL.md (repo root has no SKILL.md since v2.1)
+    "install.sh",  # 无 pyproject 时自动改为从 git 安装 wewrite CLI
 ]
 
 # Frontmatter keys to strip (OpenClaw ignores allowed-tools)

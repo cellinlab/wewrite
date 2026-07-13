@@ -23,19 +23,20 @@ allowed-tools:
 ## 运行约定
 
 - **{root}** = `{skill_dir}/root`（本目录内指向 WeWrite 仓库根的符号链接）。
-- **Python**：优先 venv——`PY="{root}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"`；下文 `python3` 均指 `$PY`。
+- **CLI**：确定性操作走 `wewrite` 命令（需在 PATH；缺失则引导 `bash {root}/install.sh` 安装）。
+- **{home}**：用户状态目录 = `$WEWRITE_HOME` 或 `~/.wewrite`（`wewrite home` 可查）。config/style/history/playbook/output/exemplars 全在 {home}，不在仓库；references 文档中的状态路径同此约定。
 - **`读取: <路径>`** = 用文件读取工具真实读完该文件再继续，不是注释。
 - **references/ 文档中的 `{skill_dir}`** 一律指 `{root}`（历史约定，指仓库根）。
-- **管道状态**：`{root}/output/_state.yaml`（契约见 `{root}/references/pipeline-state.md`）。
+- **管道状态**：`{home}/output/_state.yaml`（契约见 `{root}/references/pipeline-state.md`）。
 
 ## 前置
 
-1. **选题**：取 `output/_state.yaml` 的 `topic`；没有则用用户本轮给的选题（写入
+1. **选题**：取 `{home}/output/_state.yaml` 的 `topic`；没有则用用户本轮给的选题（写入
    `topic`，`source: "用户指定"`）；都没有 → 问用户要写什么，或建议先跑 **wewrite-topic**。
-2. **风格**：`{root}/style.yaml` 存在 → 提取 `name`、`topics`、`tone`、`voice`、
+2. **风格**：`{home}/style.yaml` 存在 → 提取 `name`、`topics`、`tone`、`voice`、
    `blacklist`、`writing_persona`、`content_style`。不存在 → 先激活 **wewrite-style**（onboard）。
 3. **写作模式标记**：读 `_state.yaml` 的 `flags.use_writer_model`；缺失或
-   `diagnosed_at` 非当天 → `python3 {root}/scripts/diagnose.py --json` 重取并写回。
+   `diagnosed_at` 非当天 → `wewrite diagnose --json` 重取并写回。
 <!-- wewrite:standalone-end -->
 
 ## Step 3: 框架 + 素材
@@ -76,16 +77,16 @@ allowed-tools:
 
 > **🔴 写作模式取决于前置的 `flags.use_writer_model`（详见 4.4），别两种都做**：
 > - **`false`（默认 · 编排器自写）** → 你直接按"写作规范"写正文。**不要调用 `llm_write.py`**（没配写作模型，调了必然 exit 3、白费一轮）。
-> - **`true`（混合路由 · 配了写作模型）** → 你只编排，正文交 `scripts/llm_write.py` 出稿。
+> - **`true`（混合路由 · 配了写作模型）** → 你只编排，正文交 `wewrite llm-write` 出稿。
 >
 > 下面 4.1-4.3 读取的文件两种模式都要（自写时是写作依据；委托时是 brief 备料）。
 
 ```
 读取: {root}/references/anti-ai-writing-system.md
 读取: {root}/references/writing-guide.md
-读取: {root}/playbook.md（如果存在，按 confidence 分级执行）
-读取: {root}/history.yaml（最近 3 篇的 dimensions + closing_type 字段）
-读取: {root}/references/exemplars/index.yaml（如果存在）
+读取: {home}/playbook.md（如果存在，按 confidence 分级执行）
+读取: {home}/history.yaml（最近 3 篇的 dimensions + closing_type 字段）
+读取: {home}/exemplars/index.yaml（如果存在）
 ```
 
 （anti-ai-writing-system.md 是出稿前必须逐条记住的**写作契约**——内联自写与 llm_write.py 共用、实测能把 composite 压到 <30；writing-guide.md 是其背后的详细 Tier 规则。两者**未读取前不得开始写作**，且在写作与验证期间保持驻留，验证模块（wewrite-review）仍按 writing-guide.md 的编号规则 1.1-3.2 检查，中途不要丢弃重读。）
@@ -117,7 +118,7 @@ allowed-tools:
 
 **优先级**：playbook.md（confidence ≥ 5 的规则）> persona > 范文风格 > writing-guide.md。writing-guide 是底线（基础写作规范），范文提供风格示范（句长节奏、情绪表达方式），persona 在此基础上特化风格参数（语气浓度、数据呈现），playbook 中高置信度规则是用户个性化的最终覆盖。playbook 中 confidence < 5 的规则作为软性参考。
 
-**4.3 范文风格注入**（有 `references/exemplars/index.yaml` 时执行）：
+**4.3 范文风格注入**（有 `{home}/exemplars/index.yaml` 时执行）：
 
 从 index.yaml 筛选 category 匹配当前框架类型的范文，取 top 3。读取对应 .md 文件的片段内容。
 
@@ -161,15 +162,15 @@ Category 映射规则：
 >
 > 【收尾模式】{seeds.closings 随机 1 个}
 
-建库命令：`python3 {root}/scripts/extract_exemplar.py article.md`
+建库命令：`wewrite exemplar article.md`
 
-**4.4 写文章** —— 本步只产出 `output/article.md`。按前置的 `flags.use_writer_model` **二选一**，别两种都走：
+**4.4 写文章** —— 本步只产出 `{home}/output/article.md`。按前置的 `flags.use_writer_model` **二选一**，别两种都走：
 
-**A. 自写模式（`use_writer_model = false`，默认 · 全 DeepSeek）**：按下面"写作规范"直接把正文写进 `output/article.md`，写完执行 4.5。**不要调用 `llm_write.py`**——没配写作模型，调它只会 exit 3、白白多耗一轮。
+**A. 自写模式（`use_writer_model = false`，默认 · 全 DeepSeek）**：按下面"写作规范"直接把正文写进 `{home}/output/article.md`，写完执行 4.5。**不要调用 `llm_write.py`**——没配写作模型，调它只会 exit 3、白白多耗一轮。
 
 **B. 委托模式（`use_writer_model = true`，混合路由 · 配了写作模型）**：你只编排，正文交给写作模型：
-1. 把【Step 3 框架大纲 + **Step 3.2 的真实素材锚点（具体数字/工具名/价格/案例——逐条写进去；写作模型只在给定事实上组织语言，严禁编造）** + 4.1 维度 + 4.2 人格要点 + 4.3 范文风格片段 + 下面"写作规范"全部要求 + 目标字数 + 可用容器语法 + 编辑锚点要求】组装成 brief，写到 `output/_brief.md`。
-2. 调：`python3 {root}/scripts/llm_write.py --brief output/_brief.md --output output/article.md`
+1. 把【Step 3 框架大纲 + **Step 3.2 的真实素材锚点（具体数字/工具名/价格/案例——逐条写进去；写作模型只在给定事实上组织语言，严禁编造）** + 4.1 维度 + 4.2 人格要点 + 4.3 范文风格片段 + 下面"写作规范"全部要求 + 目标字数 + 可用容器语法 + 编辑锚点要求】组装成 brief，写到 `{home}/output/_brief.md`。
+2. 调：`wewrite llm-write --brief output/_brief.md --output output/article.md`
 3. 按退出码：**exit 0**（stdout 是摘要）→ 正文已写入，**不要 cat / 读全文**（靠评分驱动改写——省钱命门；只有 wewrite-review 的整体自评读一次全文），**跳过 4.5** 直接进验证。**exit 3 / 4**（没配/失败）→ 退回 A 自写。
 
 **写作规范**（自己写时直接执行；委托写作模型时这些就是 brief 的内容要求）：
@@ -183,7 +184,7 @@ Category 映射规则：
 - 2-3 个编辑锚点：`<!-- ✏️ 编辑建议：在这里加一句你自己的经历/看法 -->`
 - 可选容器语法：`:::dialogue`、`:::timeline`、`:::callout`、`:::quote`、`:::highlight`（琥珀高亮框）、`:::summary`（青色总结框）
 
-保存到 `{root}/output/article.md`（全流程统一用这个工作文件名；委托写作模型与自己写都写这里）
+保存到 `{home}/output/article.md`（全流程统一用这个工作文件名；委托写作模型与自己写都写这里）
 
 **4.5 快速自检**（写完后立即执行，减少验证阶段重写概率）：
 
@@ -202,7 +203,7 @@ LLM 自行完成，不需要调用脚本。
 
 ## 完成
 
-写回 `output/_state.yaml`：`article: "output/article.md"`、`framework`、
+写回 `{home}/output/_state.yaml`：`article: "output/article.md"`、`framework`、
 `enhance_strategy`、`persona`、`dimensions`、`closing_type`、`word_count`，
 `steps_done` 追加 `write`。单独激活时提示："初稿完成，建议接着跑质量验证
 （wewrite-review）再配图发布。"

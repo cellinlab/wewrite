@@ -18,21 +18,22 @@ allowed-tools:
 ## 运行约定
 
 - **{root}** = `{skill_dir}/root`（本目录内指向 WeWrite 仓库根的符号链接）。
-- **Python**：优先 venv——`PY="{root}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"`；下文 `python3` 均指 `$PY`。
+- **CLI**：确定性操作走 `wewrite` 命令（需在 PATH；缺失则引导 `bash {root}/install.sh` 安装）。
+- **{home}**：用户状态目录 = `$WEWRITE_HOME` 或 `~/.wewrite`（`wewrite home` 可查）。config/style/history/playbook/output/exemplars 全在 {home}，不在仓库；references 文档中的状态路径同此约定。
 - **`读取: <路径>`** = 用文件读取工具真实读完该文件再继续，不是注释。
 - **references/ 文档中的 `{skill_dir}`** 一律指 `{root}`（历史约定，指仓库根）。
-- **管道状态**：`{root}/output/_state.yaml`（契约见 `{root}/references/pipeline-state.md`）。
+- **管道状态**：`{home}/output/_state.yaml`（契约见 `{root}/references/pipeline-state.md`）。
 
 ## 前置
 
-- `{root}/style.yaml` 存在 → 提取 `topics`、`content_style`。不存在 → 问用户"你的
+- `{home}/style.yaml` 存在 → 提取 `topics`、`content_style`。不存在 → 问用户"你的
   公众号主要写哪几个方向？"用回答临时代替 topics，并提示可用 **wewrite-style** 完成完整设置。
 <!-- wewrite:standalone-end -->
 
 ## 2.1 热点抓取
 
 ```bash
-python3 {root}/scripts/fetch_hotspots.py --limit 30
+wewrite hotspots --limit 30
 ```
 
 **降级**：脚本报错 → WebSearch "今日热点 {topics第一个垂类}"
@@ -40,11 +41,11 @@ python3 {root}/scripts/fetch_hotspots.py --limit 30
 ## 2.2 历史分析 + SEO
 
 ```
-读取: {root}/history.yaml（不存在则跳过）
+读取: {home}/history.yaml（不存在则跳过）
 ```
 
 ```bash
-python3 {root}/scripts/seo_keywords.py --json {关键词}
+wewrite seo --json {关键词}
 ```
 
 历史分析（有 stats 数据时）：
@@ -71,7 +72,7 @@ python3 {root}/scripts/seo_keywords.py --json {关键词}
 
 ## 完成
 
-把选定选题写入 `output/_state.yaml`：`topic.title`、`topic.keywords`、
+把选定选题写入 `{home}/output/_state.yaml`：`topic.title`、`topic.keywords`、
 `topic.source: "热点抓取"`、`topic.framework_hint`（推荐框架），`steps_done` 追加 `topic`。
 单独激活且用户只要选题列表时，展示 10 个选题即可；用户选定后写入状态并提示
 "可以直接说'就写这个'进入写作（wewrite-write）"。

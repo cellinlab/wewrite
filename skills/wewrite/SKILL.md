@@ -32,23 +32,23 @@ wewrite-* 模块）和**编排**（主管道 8 步按序跑完）。
 - **默认全自动**——一口气跑完 Step 1-8，不中途停下。只在出错时停。
 - **交互模式**——用户说"交互模式"/"我要自己选"时，在选题/框架/配图处暂停。
 
-**降级原则**：每一步都有降级方案。Step 1 检测到的降级标记（`skip_publish`、`skip_image_gen`）写入 `output/_state.yaml`，后续模块自动生效，不重复报错。
+**降级原则**：每一步都有降级方案。Step 1 检测到的降级标记（`skip_publish`、`skip_image_gen`）写入 `{home}/output/_state.yaml`，后续模块自动生效，不重复报错。
 
 **进度追踪**：**若 harness 提供 task 工具（如 TaskCreate）**，主管道启动时为 8 个 Step 创建任务，每步 in_progress→completed；**否则**每进入一步发一行 `[N/8] 步骤名` 文本进度。无论哪种，都必须把 8 步走完——编号清单是排序骨架，不依赖特定工具。
 
 **完成协议**：
 - **DONE** — 全流程完成，文章已保存/推送
 - **DONE_WITH_CONCERNS** — 完成但部分步骤降级，列出降级项
-- **BLOCKED** — 关键步骤无法继续（如 Python 依赖缺失且用户拒绝安装）
+- **BLOCKED** — 关键步骤无法继续（如 wewrite CLI 缺失且用户拒绝安装）
 - **NEEDS_CONTEXT** — 需要用户提供信息才能继续（如首次设置需要公众号名称）
 
 **路径约定**：本文档中 `{root}` 指 WeWrite 仓库根目录 = `{skill_dir}/root`（本 skill 目录内指向仓库根的符号链接）。references/ 文档中的 `{skill_dir}` 一律指 `{root}`（历史约定）。
 
 **读取/检查约定**：本文档中 `读取: <路径>` / `检查: <路径>` = **用你环境的文件读取工具真实打开该文件、读完其全部内容，然后再继续本步**。这不是描述性注释——未读取前不得执行依赖该文件的步骤；不同 harness 的文件读取工具名不同，按你环境的对应工具执行。
 
-**Python 解释器约定**：本文档所有 `python3` 命令优先解析为 `{root}/.venv/bin/python3`（若该文件存在），否则回退系统 `python3`。venv 由 `install.sh` 创建，用于隔离依赖并绕过 macOS Homebrew Python 的 PEP 668 限制。
+**CLI 约定**：确定性操作（自检/抓热点/评分/生图/排版/发布…）一律走 `wewrite` 命令，需在 PATH（由 `install.sh` 安装）。**{home}** = 用户状态目录 `$WEWRITE_HOME` 或 `~/.wewrite`（`wewrite home` 可查）——config/style/history/playbook/output/exemplars 全在 {home}，不在仓库；references 文档中的状态路径同此约定。
 
-**管道状态**：跨模块状态统一落盘 `{root}/output/_state.yaml`，契约见 `{root}/references/pipeline-state.md`。主管道开新一篇文章时重置该文件（保留当天有效的 `flags`）。
+**管道状态**：跨模块状态统一落盘 `{home}/output/_state.yaml`，契约见 `{root}/references/pipeline-state.md`。主管道开新一篇文章时重置该文件（保留当天有效的 `flags`）。
 
 **Onboard 例外**：Onboard（wewrite-style）是交互式的（需要问用户问题），不受"全自动"约束。Onboard 完成后回到全自动管道。
 
@@ -86,21 +86,19 @@ wewrite-* 模块）和**编排**（主管道 8 步按序跑完）。
 [5/8] SEO + 验证   [6/8] 视觉 AI   [7/8] 排版 + 发布   [8/8] 收尾
 ```
 
-Step 1、8 由本入口执行；Step 2-7 由 5 个管道模块承担，状态经 `output/_state.yaml` 传递，模块间不停顿（交互模式除外）。
+Step 1、8 由本入口执行；Step 2-7 由 5 个管道模块承担，状态经 `{home}/output/_state.yaml` 传递，模块间不停顿（交互模式除外）。
 
 ### Step 1: 环境 + 配置
 
 **1.1 环境 + 配置自检**（**一条命令拿全部降级标记**，别再逐项手查/逐个读文件）：
 
 ```bash
-# 优先用 venv 解释器（PEP 668 环境下依赖装在 .venv 里）；后续所有 python3 调用同此规则
-PY="{root}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"
-"$PY" {root}/scripts/diagnose.py --json
+wewrite diagnose --json
 ```
 
 读返回 JSON 的 `flags` 与 `summary`（diagnose 已涵盖依赖检查 + config/env 双源识别，不必再单独 import 测试或读 config.yaml）：
-- `flags.skip_publish` / `flags.skip_image_gen` / `flags.use_writer_model` → 连同 `diagnosed_at: 今天` 写入 `output/_state.yaml` 的 `flags`，后续模块自动遵守。
-- `summary.failures > 0`（依赖缺失）→ 引导 `bash {root}/install.sh`（建 .venv 装依赖，解决 macOS PEP 668）；否则静默继续。
+- `flags.skip_publish` / `flags.skip_image_gen` / `flags.use_writer_model` → 连同 `diagnosed_at: 今天` 写入 `{home}/output/_state.yaml` 的 `flags`，后续模块自动遵守。
+- `wewrite` 命令不存在或 `summary.failures > 0` → 引导 `bash {root}/install.sh`（安装/更新 wewrite CLI 并链接 skills）；否则静默继续。
 - 若 `files.exemplars` 为空可顺带提示一次"可说**'导入范文'**建风格库"，不阻断。
 
 **1.2 版本检查**（仅本地交互式 skill 安装；云端/容器跳过）：
@@ -110,13 +108,13 @@ PY="{root}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"
 **1.3 加载风格**：
 
 ```
-检查: {root}/style.yaml
+检查: {home}/style.yaml
 ```
 
 - 存在 → 提取 `name`、`topics`、`tone`、`voice`、`blacklist`、`theme`、`cover_style`、`author`、`content_style`
 - 不存在 → 激活 `wewrite-style`（onboard），完成后回到 Step 1
 
-**1.4 重置管道状态**：开新一篇文章 → 重置 `output/_state.yaml`（保留 `flags`）。
+**1.4 重置管道状态**：开新一篇文章 → 重置 `{home}/output/_state.yaml`（保留 `flags`）。
 如果用户直接给了选题 → 写入 `topic`（`source: "用户指定"`），跳过 [2/8] 直达 [3/8]（仍需框架选择和素材采集，不可跳过）。
 
 <!-- wewrite:modular-start -->
@@ -125,7 +123,7 @@ PY="{root}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"
 | 进度 | 模块 | 核心产出 |
 |------|------|---------|
 | [2/8] 选题 | `wewrite-topic` | `_state.topic` |
-| [3/8]+[4/8] 框架+素材 / 写作 | `wewrite-write` | `output/article.md` |
+| [3/8]+[4/8] 框架+素材 / 写作 | `wewrite-write` | `{home}/output/article.md` |
 | [5/8] SEO+验证 | `wewrite-review` | `_state.seo` |
 | [6/8] 视觉 AI | `wewrite-visual` | `_state.images`（.png 文件） |
 | [7/8] 排版+发布 | `wewrite-publish` | `_state.publish` |
@@ -136,10 +134,10 @@ PY="{root}/.venv/bin/python3"; [ -x "$PY" ] || PY="python3"
 
 ### Step 8: 收尾
 
-**8.1 写入历史**（推送成功或降级都要写，文件不存在则创建；字段值以 `output/_state.yaml` 为唯一事实源）：
+**8.1 写入历史**（推送成功或降级都要写，文件不存在则创建；字段值以 `{home}/output/_state.yaml` 为唯一事实源）：
 
 ```yaml
-# → {root}/history.yaml
+# → {home}/history.yaml
 - date: "{日期}"
   title: "{标题}"
   topic_source: "热点抓取"  # 或 "用户指定"
